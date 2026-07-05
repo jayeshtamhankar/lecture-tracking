@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="theme-color" content="#1F3D34">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lecture Ledger">
+<title>Lecture Ledger — Coding & Robotics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+</head>
+<body>
+
+<div id="lockScreen" class="lock-overlay">
+  <div class="lock-card">
+    <p class="eyebrow">Coding &amp; Robotics Dept.</p>
+    <h1 style="color:var(--chalk-white); font-size:1.8rem;">Lecture Ledger</h1>
+
+    <div id="lockSetupView">
+      <p class="lock-copy">First time here — set a password to lock this site on this device.</p>
+      <form id="lockSetupForm">
+        <input type="password" id="lockSetupPassword" placeholder="Choose a password" required autocomplete="new-password">
+        <input type="password" id="lockSetupConfirm" placeholder="Confirm password" required autocomplete="new-password">
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:.6rem;">Set password &amp; continue</button>
+      </form>
+    </div>
+
+    <div id="lockLoginView" style="display:none;">
+      <p class="lock-copy">Enter your password to continue.</p>
+      <form id="lockLoginForm">
+        <input type="password" id="lockLoginPassword" placeholder="Password" required autocomplete="current-password">
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:.6rem;">Unlock</button>
+      </form>
+      <button type="button" id="lockForgotBtn" class="lock-forgot">Forgot password?</button>
+    </div>
+
+    <p id="lockError" class="lock-error"></p>
+  </div>
+</div>
+
+<div id="appContent">
+
+<header class="board">
+  <div class="board-inner">
+    <p class="eyebrow">Coding &amp; Robotics Dept.</p>
+    <h1>Lecture Ledger</h1>
+    <p class="subtitle">A running record of every class you teach — standard, division, group, topic, attendance, and status, all in one page.</p>
+    <button type="button" id="logoutBtn" class="logout-btn">Log out</button>
+    <div class="stats-row" id="statsRow"></div>
+  </div>
+</header>
+
+<main>
+
+  <section class="panel">
+    <h2><span class="idx">01</span> Log a lecture</h2>
+    <p class="hint">Standard, Division, and Group are required for every status except "No Class" — pick "No Class" and leave them blank to save as N/A. Topic, Learning Outcomes, and attendance are only required for a Regular Class. A Note is required when status is "No Class", to record the reason (meeting, function, holiday, etc.).</p>
+    <form id="entryForm">
+      <div class="field">
+        <label for="date">Date</label>
+        <input type="date" id="date" required>
+      </div>
+
+      <div class="field">
+        <label for="time">Time</label>
+        <input type="time" id="time">
+      </div>
+
+      <div class="field">
+        <label for="standard">Standard</label>
+        <select id="standard">
+          <option value="" disabled selected>Select standard</option>
+          <option>5th</option><option>6th</option><option>7th</option>
+          <option>8th</option><option>9th</option><option>10th</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="division">Division</label>
+        <select id="division">
+          <option value="" disabled selected>Select division</option>
+          <option>A</option><option>B</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="group">Group</label>
+        <select id="group">
+          <option value="" disabled selected>Select group</option>
+          <option>Combined</option><option>Girls</option><option>Boys</option>
+        </select>
+      </div>
+
+      <div class="field span-4">
+        <label for="topic">Topic covered</label>
+        <textarea id="topic" placeholder="e.g. Introduction to loops in Scratch"></textarea>
+      </div>
+
+      <div class="field span-4">
+        <label for="outcomes">Learning outcomes</label>
+        <textarea id="outcomes" placeholder="e.g. Students can write a basic repeat loop and explain when to use one"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="present">Students present (total)</label>
+        <input type="number" id="present" min="0" placeholder="e.g. 38">
+      </div>
+
+      <div class="field span-2">
+        <label for="absent">Absent students (roll numbers)</label>
+        <input type="text" id="absent" placeholder="e.g. 4, 12, 27">
+      </div>
+
+      <div class="field">
+        <label for="excelled">% Students excelled</label>
+        <input type="number" id="excelled" min="0" max="100" placeholder="e.g. 30">
+      </div>
+
+      <div class="field span-2">
+        <label for="status">Class status</label>
+        <select id="status" required>
+          <option value="" disabled selected>Select status</option>
+          <option>Regular Class</option><option>No Class</option><option>Vacation</option>
+        </select>
+      </div>
+
+      <div class="field span-4">
+        <label for="note">Note <span id="noteHint" style="text-transform:none; font-weight:400; letter-spacing:normal;">(reason if no class — e.g. staff meeting, school function, holiday)</span></label>
+        <textarea id="note" placeholder="e.g. No class today — staff meeting in the afternoon"></textarea>
+      </div>
+
+      <div class="field span-2">
+        <label for="photo">Class photo (optional)</label>
+        <input type="file" id="photo" accept="image/*">
+        <div class="photo-preview-name" id="photoFileName"></div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" id="resetBtn">Clear form</button>
+        <button type="submit" class="btn-primary" id="submitBtn">Add entry</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">02</span> All lectures</h2>
+    <div class="toolbar">
+      <div class="filters">
+        <select id="filterStandard">
+          <option value="">All standards</option>
+          <option>5th</option><option>6th</option><option>7th</option>
+          <option>8th</option><option>9th</option><option>10th</option>
+        </select>
+        <select id="filterDivision">
+          <option value="">All divisions</option>
+          <option>A</option><option>B</option>
+        </select>
+        <select id="filterStatus">
+          <option value="">All statuses</option>
+          <option>Regular Class</option><option>No Class</option><option>Vacation</option>
+        </select>
+        <input type="text" id="searchTopic" placeholder="Search topic…">
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-ghost btn-small" id="exportCsv">Export CSV</button>
+        <button class="btn-ghost btn-small" id="exportJson">Export all (JSON)</button>
+        <button class="btn-ghost btn-small" id="importJsonBtn">Import JSON</button>
+        <button class="btn-ghost btn-small" id="resetAllBtn" style="color:#C9584A; border-color:#E3B3AC;">Reset all data</button>
+        <input type="file" id="importJsonFile" accept=".json" style="display:none">
+      </div>
+    </div>
+
+    <div class="ledger-wrap">
+      <table id="ledgerTable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Time</th><th>Standard</th><th>Div</th><th>Group</th>
+            <th>Topic</th><th>Present</th><th>Absent (roll no.)</th><th>% Excelled</th>
+            <th>Status</th><th>Photo</th><th>Troublemakers</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="big">No lectures logged yet</div>
+        <div>Fill in the form above to add your first entry.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">03</span> Troublemakers</h2>
+    <p class="hint">A fully independent watch-list — add one or several roll numbers/names at once (comma-separated), with an optional link to the lecture it happened in.</p>
+    <form id="troubleForm">
+      <div class="field">
+        <label for="tRoll">Roll number(s) — comma-separated</label>
+        <input type="text" id="tRoll" placeholder="e.g. 12, 27, 30" required>
+      </div>
+      <div class="field span-2">
+        <label for="tName">Student name(s) — comma-separated, same order</label>
+        <input type="text" id="tName" placeholder="e.g. Rohan, Sneha, Aman" required>
+      </div>
+      <div class="field">
+        <label for="tLecture">Linked lecture (optional)</label>
+        <select id="tLecture">
+          <option value="">Not linked to a specific class</option>
+        </select>
+      </div>
+      <div class="field span-4">
+        <label for="tNote">What happened</label>
+        <textarea id="tNote" placeholder="e.g. Kept distracting classmates during the robotics demo" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" id="troubleResetBtn">Clear form</button>
+        <button type="submit" class="btn-primary" id="troubleSubmitBtn">Add note</button>
+      </div>
+    </form>
+
+    <div class="toolbar" style="margin-top:1.4rem;">
+      <div class="filters">
+        <input type="text" id="troubleSearch" placeholder="Search by name or roll no…">
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-ghost btn-small" id="exportTroubleCsv">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="ledger-wrap">
+      <table id="troubleTable">
+        <thead>
+          <tr><th>Roll No.</th><th>Name</th><th>Note</th><th>Linked lecture</th><th>Met Parent</th><th>Times noted</th><th></th></tr>
+        </thead>
+        <tbody id="troubleBody"></tbody>
+      </table>
+      <div class="empty-state" id="troubleEmptyState" style="display:none;">
+        <div class="big">No troublemakers logged</div>
+        <div>Add a note above whenever it's needed.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">04</span> Monthly report</h2>
+    <p class="hint">Generates a "Performance Report (Innovation Lab)" style PDF for one standard, division, and month — pulling straight from what you've already logged above. Each lecture in that month becomes one numbered session row.</p>
+    <form id="reportForm">
+      <div class="field span-2">
+        <label for="reportTeacher">Teacher name</label>
+        <input type="text" id="reportTeacher" placeholder="e.g. Mrs. Deshmukh">
+      </div>
+      <div class="field span-2">
+        <label for="reportMonth">Month</label>
+        <input type="month" id="reportMonth" required>
+      </div>
+      <div class="field">
+        <label for="reportStandard">Standard</label>
+        <select id="reportStandard" required>
+          <option value="" disabled selected>Select standard</option>
+          <option>5th</option><option>6th</option><option>7th</option>
+          <option>8th</option><option>9th</option><option>10th</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="reportDivision">Division</label>
+        <select id="reportDivision" required>
+          <option value="" disabled selected>Select division</option>
+          <option>A</option><option>B</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" id="generateReportBtn">Download PDF</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">05</span> Backup to Google Sheets</h2>
+    <p class="hint">Push a copy of every lecture to a Google Sheet you own — set up once via a small Apps Script attached to your sheet (see <code>data/google-apps-script.gs</code> in this project for the code and setup steps). No Google Cloud Console needed. Photos aren't included (just a Yes/No flag) — they're too large for a spreadsheet cell.</p>
+
+    <form id="sheetsSettingsForm">
+      <div class="field span-2">
+        <label for="gsWebAppUrl">Google Apps Script web app URL</label>
+        <input type="text" id="gsWebAppUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+      </div>
+      <div class="field span-2">
+        <label for="gsSecret">Secret key (must match the script)</label>
+        <input type="text" id="gsSecret" placeholder="the password you set in the script">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Save settings</button>
+      </div>
+    </form>
+
+    <div class="toolbar" style="margin-top:1.2rem;">
+      <div class="filters">
+        <span id="gsStatus" style="font-size:.86rem; color:var(--ink-soft);">Not connected</span>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-ghost btn-small" id="gsSyncBtn">Sync now</button>
+      </div>
+    </div>
+
+    <label style="display:flex; align-items:center; gap:.5rem; margin-top:1rem; font-weight:500; font-size:.88rem; text-transform:none; letter-spacing:normal; color:var(--ink);">
+      <input type="checkbox" id="gsAutoSync" style="width:auto; min-height:auto;">
+      Auto-sync after every save
+    </label>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">06</span> Local Excel backup</h2>
+    <p class="hint">A second, no-account-needed way to keep a backup — downloads a real .xlsx file with your lectures and troublemaker notes as separate sheets. Keep copies wherever you like (the <code>data/</code> folder in this project is a fine spot), and use Import if anything ever goes wrong.</p>
+    <div class="toolbar-actions">
+      <button class="btn-ghost btn-small" id="exportExcelBtn">Export Excel (.xlsx)</button>
+      <button class="btn-ghost btn-small" id="importExcelBtn">Import Excel (.xlsx)</button>
+      <input type="file" id="importExcelFile" accept=".xlsx" style="display:none">
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="idx">07</span> Auto-save to a local data file</h2>
+    <p class="hint">On Chrome or Edge on a computer, point this at your project's <strong>root folder</strong> (the one containing <code>index.html</code>) — every time you add, edit, or delete a lecture, <code>data/lecture-ledger-data.json</code> updates automatically, and any class photo you attach is also saved as a real image file inside <code>photos/</code>. This only works in Chrome/Edge on a desktop, and only when the site is opened over https (like your GitHub Pages link) — not on phones, Safari, Firefox, or opened directly as a local file. Treat it as a bonus layer alongside Google Sheets or Excel, not your only backup.</p>
+    <div class="toolbar-actions">
+      <button class="btn-ghost btn-small" id="connectFolderBtn">Connect a folder</button>
+    </div>
+    <p style="margin-top:.8rem; font-size:.86rem; color:var(--ink-soft);" id="folderStatus">Not connected</p>
+  </section>
+
+</main>
+
+<footer>Your data auto-saves in this browser. <span id="saveIndicator" style="font-weight:600;"></span><br>Use "Export all (JSON)" now and then to keep a portable backup — it also lets you move data to another device.</footer>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">&times;</button>
+  <img id="lightboxImg" src="" alt="Class photo">
+</div>
+
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.min.js" defer></script>
+<script src="js/script.js" defer></script>
+</body>
+</html>
